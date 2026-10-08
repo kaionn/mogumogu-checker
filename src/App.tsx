@@ -10,15 +10,30 @@ import { useProfile } from './hooks/useProfile'
 import { useAnalysis } from './hooks/useAnalysis'
 import { nutrientMeta } from './lib/nutrient-targets'
 import { parsePiyologText } from './lib/piyolog-parser'
+import { groupMealsByDate, localToday } from './lib/meal-days'
 
 type InputMode = 'manual' | 'piyolog'
 
 function App() {
   const { profile, setProfile } = useProfile()
-  const { state, analyze } = useAnalysis()
-  const [foodsText, setFoodsText] = useState('7倍粥 50g, 鮭 10g, ほうれん草 10g, バナナ 15g, ヨーグルト 20g')
+  const { state, analyze, reset } = useAnalysis()
+  const [manualFoods, setManualFoods] = useState('7倍粥 50g, 鮭 10g, ほうれん草 10g, バナナ 15g, ヨーグルト 20g')
+  const [mealDays, setMealDays] = useState<Record<string, string>>({})
+  const [selectedDate, setSelectedDate] = useState('')
   const [inputMode, setInputMode] = useState<InputMode>('manual')
   const [parseMessage, setParseMessage] = useState('')
+  const dates = Object.keys(mealDays).sort()
+  const analysisDate = inputMode === 'manual' ? localToday() : selectedDate
+  const foodsText = inputMode === 'manual' ? manualFoods : (mealDays[selectedDate] ?? '')
+  const setFoodsText = (value: string) => {
+    reset()
+    if (inputMode === 'manual') setManualFoods(value)
+    else setMealDays(days => ({ ...days, [selectedDate]: value }))
+  }
+  const changeMode = (mode: InputMode) => {
+    reset()
+    setInputMode(mode)
+  }
 
   const handleFileLoad = (content: string) => {
     const { entries, skipped } = parsePiyologText(content)
@@ -27,20 +42,21 @@ function App() {
       return
     }
 
-    const allFoods = entries.flatMap(e => e.foods)
-    const text = allFoods.map(f => `${f.name} ${f.grams}g`).join(', ')
-    setFoodsText(text)
-    setInputMode('manual')
+    const days = groupMealsByDate(entries)
+    reset()
+    setMealDays(days)
+    setSelectedDate(Object.keys(days).sort().at(-1) ?? '')
+    setInputMode('piyolog')
 
     const msg = skipped > 0
       ? `${entries.length}件の離乳食記録を取り込みました（${skipped}行スキップ）`
       : `${entries.length}件の離乳食記録を取り込みました`
-    setParseMessage(msg)
+    setParseMessage(`${msg}（${Object.keys(days).length}日分）`)
   }
 
   const handleAnalyze = () => {
     setParseMessage('')
-    analyze(foodsText, profile)
+    analyze(foodsText, profile, analysisDate)
   }
 
   return (
@@ -56,7 +72,7 @@ function App() {
         {/* 入力モード切り替え */}
         <div className="flex gap-2 mb-4">
           <button
-            onClick={() => setInputMode('manual')}
+            onClick={() => changeMode('manual')}
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
               inputMode === 'manual'
                 ? 'bg-orange-400 text-white'
@@ -66,7 +82,7 @@ function App() {
             手動入力
           </button>
           <button
-            onClick={() => setInputMode('piyolog')}
+            onClick={() => changeMode('piyolog')}
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
               inputMode === 'piyolog'
                 ? 'bg-orange-400 text-white'
@@ -80,7 +96,18 @@ function App() {
         {inputMode === 'manual' ? (
           <ManualInput value={foodsText} onChange={setFoodsText} />
         ) : (
-          <FileUpload onFileLoad={handleFileLoad} />
+          <>
+            <FileUpload onFileLoad={handleFileLoad} />
+            {dates.length > 0 && (
+              <div className="mb-4">
+                <label htmlFor="meal-date" className="block text-sm font-medium mb-2">解析する日</label>
+                <select id="meal-date" value={selectedDate} onChange={event => { reset(); setSelectedDate(event.target.value) }} className="w-full rounded-lg border border-gray-300 p-2 mb-3">
+                  {dates.map(date => <option key={date} value={date}>{date}</option>)}
+                </select>
+                <ManualInput value={foodsText} onChange={setFoodsText} />
+              </div>
+            )}
+          </>
         )}
 
         {parseMessage && (
@@ -89,7 +116,7 @@ function App() {
 
         <button
           onClick={handleAnalyze}
-          disabled={state.status === 'loading'}
+          disabled={state.status === 'loading' || !foodsText.trim()}
           className="w-full bg-orange-500 text-white py-3 rounded-xl font-bold text-lg shadow-md hover:bg-orange-600 active:bg-orange-700 transition-colors disabled:opacity-50 mb-6"
         >
           {state.status === 'loading' ? '解析中...' : '解析する'}
@@ -99,8 +126,9 @@ function App() {
           <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">{state.message}</div>
         )}
 
-        {state.status === 'done' && (
+        {state.status === 'done' && state.result.date === analysisDate && (
           <div className="bg-white rounded-xl p-4 shadow-sm">
+            <p className="text-sm text-gray-600 text-center mb-3">解析対象日: {state.result.date}</p>
             {state.result.source === 'local' && (
               <p className="text-xs text-gray-400 text-center mb-3">ローカル計算の結果です</p>
             )}

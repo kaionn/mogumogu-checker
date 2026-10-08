@@ -59,7 +59,7 @@ export function parsePiyologText(text: string): { entries: MealEntry[]; skipped:
     if (!trimmed) continue
 
     // 日付行: 2026/03/10 or 2026-03-10
-    const dateMatch = trimmed.match(/^(\d{4})[/\-](\d{1,2})[/\-](\d{1,2})$/)
+    const dateMatch = trimmed.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/)
     if (dateMatch) {
       flushEntry()
       const [, y, m, d] = dateMatch
@@ -122,7 +122,7 @@ function parseCsvFormat(lines: string[]): { entries: MealEntry[]; skipped: numbe
       continue
     }
 
-    const dateTimeMatch = datetime.match(/(\d{4})[/\-](\d{1,2})[/\-](\d{1,2})\s+(\d{1,2}:\d{2})/)
+    const dateTimeMatch = datetime.match(/(\d{4})[/-](\d{1,2})[/-](\d{1,2})\s+(\d{1,2}:\d{2})/)
     if (!dateTimeMatch) {
       skipped++
       continue

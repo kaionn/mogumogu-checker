@@ -1,4 +1,4 @@
-import type { AgeBand, NutrientTargets, NutrientMeta, NutrientKey } from '../types'
+import type { AgeBand, NutrientTargets, NutrientMeta } from '../types'
 
 export const ageBands: AgeBand[] = [
   { min: 5, max: 6, targets: { energy: 140, protein: 5, iron: 3, calcium: 120, vitaminC: 20, veggies: 30 } },
