@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 
 interface Props {
   onFileLoad: (content: string) => void
@@ -6,15 +6,22 @@ interface Props {
 
 export function FileUpload({ onFileLoad }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const readerRef = useRef<FileReader | null>(null)
+  useEffect(() => () => {
+    readerRef.current?.abort()
+    readerRef.current = null
+  }, [])
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
+    readerRef.current?.abort()
     const reader = new FileReader()
+    readerRef.current = reader
     reader.onload = (ev) => {
       const text = ev.target?.result
-      if (typeof text === 'string') {
+      if (readerRef.current === reader && typeof text === 'string') {
         onFileLoad(text)
       }
     }

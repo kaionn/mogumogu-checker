@@ -34,18 +34,13 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))
 }
 
-function getStatus(percent: number): '十分' | 'あと少し' | '不足' {
-  if (percent >= 90) return '十分'
-  if (percent >= 70) return 'あと少し'
-  return '不足'
-}
-
 export function analyzeLocally(
   foods: FoodItem[],
   months: number,
   weight: number,
   milk: number,
   meals: number,
+  date = new Date().toISOString().split('T')[0],
 ): AnalysisResult {
   const totals: FoodContribution = { energy: 0, protein: 0, iron: 0, calcium: 0, vitaminC: 0, veggies: 0 }
   let carbCount = 0
@@ -125,7 +120,7 @@ export function analyzeLocally(
   if (tips.length === 0) tips.push('今の構成でもかなり整っています。次は食材の種類を少しずつ増やしていくといいですね。')
 
   return {
-    date: new Date().toISOString().split('T')[0],
+    date,
     nutrients,
     score,
     summary: headline,

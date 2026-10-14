@@ -11,11 +11,12 @@ interface GeminiResponse {
 export async function callAnalyzeApi(
   profile: BabyProfile,
   foods: string,
+  date?: string,
 ): Promise<GeminiResponse> {
   const response = await fetch('/api/analyze', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ profile, foods }),
+    body: JSON.stringify({ profile, foods, date }),
   })
 
   if (!response.ok) {

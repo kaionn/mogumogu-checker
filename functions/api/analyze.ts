@@ -10,19 +10,20 @@ interface AnalyzeRequest {
     mealsPerDay: number
   }
   foods: string
+  date?: string
 }
 
-function buildPrompt(profile: AnalyzeRequest['profile'], foods: string): string {
+function buildPrompt(profile: AnalyzeRequest['profile'], foods: string, date?: string): string {
   return `あなたは離乳食の栄養アドバイザーです。
 
-以下の条件の赤ちゃんが今日食べた離乳食の栄養バランスを評価してください。
+以下の条件の赤ちゃんが${date ? `${date}に` : '今日'}食べた離乳食の栄養バランスを評価してください。
 
 赤ちゃんの情報:
 - 月齢: ${profile.months}ヶ月
 - 体重: ${profile.weight}kg
 - 授乳/ミルク回数: ${profile.milkPerDay}回/日
 
-今日の離乳食:
+${date ?? '今日'}の離乳食:
 ${foods}
 
 以下の JSON 形式で回答してください（JSON のみ、他のテキストは不要）:
@@ -68,7 +69,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
   }
 
-  const prompt = buildPrompt(body.profile, body.foods)
+  if (body.date !== undefined && (typeof body.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(body.date))) {
+    return new Response(JSON.stringify({ error: 'Invalid analysis date' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+  const prompt = buildPrompt(body.profile, body.foods, body.date)
 
   try {
     const response = await fetch(
@@ -105,7 +112,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     const result = JSON.parse(text)
-    return new Response(JSON.stringify(result), {
+    return new Response(JSON.stringify({ ...result, date: body.date ?? new Date().toISOString().split('T')[0] }), {
       headers: { 'Content-Type': 'application/json' },
     })
   } catch (err) {

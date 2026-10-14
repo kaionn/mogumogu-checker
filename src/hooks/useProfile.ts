@@ -27,7 +27,9 @@ export function useProfile() {
     setProfileState(p)
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(p))
-    } catch {}
+    } catch {
+      // Storage may be unavailable; the in-memory profile remains usable.
+    }
   }, [])
 
   return { profile, setProfile }
