@@ -73,3 +73,62 @@ test('analysis pipeline retains selected date for API and fallback results', asy
   assert.equal(result.date, secondDate)
   assert.equal(result.source, 'local')
 })
+
+function loadReact(path, hooks, extras = {}) {
+  const { outputFiles } = buildSync({ entryPoints: [path], bundle: true, write: false, platform: 'node', format: 'cjs', jsx: 'automatic', external: ['react', 'react/jsx-runtime'] })
+  const module = { exports: {} }
+  const jsx = (type, props) => ({ type, props })
+  vm.runInNewContext(outputFiles[0].text, { module, exports: module.exports, require: name => name === 'react' ? hooks : { jsx, jsxs: jsx }, fetch: extras.fetch, Response, console, Date, ...extras })
+  return module.exports
+}
+
+test('reset and newer analysis discard older asynchronous responses', async () => {
+  let state
+  const pending = []
+  const hooks = { useState: () => [state, value => { state = value }], useRef: value => ({ current: value }), useCallback: callback => callback }
+  const { useAnalysis } = loadReact('src/hooks/useAnalysis.ts', hooks, { fetch: () => new Promise(resolve => pending.push(resolve)) })
+  const analysis = useAnalysis()
+  const old = analysis.analyze('鮭 10g', profile, firstDate)
+  analysis.reset()
+  pending.shift()(Response.json({ nutrients: {}, score: 50, deficiencies: [], tips: [] }))
+  await old
+  assert.equal(state.status, 'idle')
+  const first = analysis.analyze('鮭 10g', profile, firstDate)
+  const second = analysis.analyze('バナナ 15g', profile, secondDate)
+  pending[1](Response.json({ nutrients: {}, score: 70, deficiencies: [], tips: [] }))
+  await second
+  pending[0](Response.json({ nutrients: {}, score: 50, deficiencies: [], tips: [] }))
+  await first
+  assert.equal(state.result.date, secondDate)
+})
+
+test('latest file wins and unmounted upload cannot apply a late read', () => {
+  let cleanup
+  const readers = []
+  class Reader {
+    constructor() { readers.push(this) }
+    readAsText() {}
+    abort() { this.aborted = true }
+    finish(text) { this.onload({ target: { result: text } }) }
+  }
+  const hooks = { useRef: value => ({ current: value }), useEffect: effect => { cleanup = effect() } }
+  const loaded = []
+  const { FileUpload } = loadReact('src/components/FileUpload.tsx', hooks, { FileReader: Reader })
+  const tree = FileUpload({ onFileLoad: text => loaded.push(text) })
+  const input = tree.props.children[1].props.children[1]
+  input.props.onChange({ target: { files: [{}] } })
+  input.props.onChange({ target: { files: [{}] } })
+  assert.equal(readers[0].aborted, true)
+  readers[1].finish('latest')
+  readers[0].finish('old')
+  assert.deepEqual(loaded, ['latest'])
+  cleanup()
+  readers[1].finish('unmounted')
+  assert.deepEqual(loaded, ['latest'])
+})
+
+test('manual analysis date follows local date across UTC midnight', () => {
+  const { localToday } = load('src/lib/meal-days.ts')
+  assert.equal(localToday(new Date(2026, 9, 14, 0, 1)), '2026-10-14')
+  assert.equal(localToday(new Date(2026, 9, 13, 23, 59)), '2026-10-13')
+})

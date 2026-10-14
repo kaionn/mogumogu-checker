@@ -67,7 +67,7 @@ function App() {
       </header>
 
       <main className="max-w-2xl mx-auto p-4">
-        <ProfileForm profile={profile} onChange={setProfile} />
+        <ProfileForm profile={profile} onChange={value => { reset(); setProfile(value) }} />
 
         {/* 入力モード切り替え */}
         <div className="flex gap-2 mb-4">
