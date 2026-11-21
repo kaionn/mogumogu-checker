@@ -99,16 +99,17 @@ test('FileUpload の input は見た目だけ隠し、Tab で届き、名前を�
   const input = inputs[0]
   assert.ok(!classes(input).includes('hidden'), 'display:none の hidden を使わない')
   assert.ok(classes(input).includes('sr-only'))
-  assert.ok(classes(input).includes('peer'))
   assert.ok(!('tabindex' in input.attrs) || Number(input.attrs.tabindex) >= 0)
   assert.ok(!('disabled' in input.attrs))
   assert.equal(unescape(input.attrs['aria-label'] ?? ''), 'ぴよログの CSV / テキストファイルを選択')
   assert.equal(input.attrs.accept, '.csv,.txt,.text')
-  // フォーカス時に見える枠を出す要素がある
-  const ringed = findTags(html, t => classes(t).some(c => c.startsWith('peer-focus-visible:ring')))
+  // input にフォーカスがあるとき、見える枠を出す要素がある（label を group にして has-focus-visible で枠を出す）
+  const ringed = findTags(html, t => classes(t).some(c => /focus-visible:ring-2$/.test(c)))
   assert.ok(ringed.length >= 1, html)
-  // peer は後ろの兄弟にしか効かないので、input が枠の要素より前にある
-  assert.ok(html.indexOf('<input') < html.indexOf('peer-focus-visible:ring'), html)
+  const label = findTags(html, t => t.name === 'label')
+  assert.equal(label.length, 1)
+  assert.ok(classes(label[0]).includes('group'))
+  assert.match(html, /<label[^>]*>[\s\S]*<input[^>]*>[\s\S]*<\/label>/, 'input は label の中にある')
 })
 
 // ---- Suggestions ----

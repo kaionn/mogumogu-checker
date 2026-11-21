@@ -33,8 +33,8 @@ export function FileUpload({ onFileLoad }: Props) {
   return (
     <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
       <h3 className="font-bold text-gray-700 mb-3">ぴよログから取り込み</h3>
-      <label className="block cursor-pointer">
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-orange-300 transition-colors">
+      <label className="group relative block cursor-pointer">
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-orange-300 transition-colors group-has-focus-visible:ring-2 group-has-focus-visible:ring-orange-400 group-has-focus-visible:ring-offset-2">
           <p className="text-sm text-gray-500">ぴよログの CSV / テキストファイルを選択</p>
           <p className="text-xs text-gray-400 mt-1">タップしてファイルを選ぶ</p>
         </div>
@@ -43,7 +43,8 @@ export function FileUpload({ onFileLoad }: Props) {
           type="file"
           accept=".csv,.txt,.text"
           onChange={handleFile}
-          className="hidden"
+          aria-label="ぴよログの CSV / テキストファイルを選択"
+          className="sr-only"
         />
       </label>
     </div>

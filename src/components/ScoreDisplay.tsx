@@ -11,12 +11,14 @@ export function ScoreDisplay({ score, summary }: Props) {
     <div className="text-center mb-6">
       <div
         className="relative w-32 h-32 mx-auto rounded-full flex items-center justify-center"
+        role="img"
+        aria-label={`総合スコア ${score} 点`}
         style={{
           background: `conic-gradient(${color} 0deg ${degrees}deg, #e5e7eb ${degrees}deg 360deg)`,
         }}
       >
         <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center">
-          <span className="text-3xl font-bold text-gray-800">{score}</span>
+          <span className="text-3xl font-bold text-gray-800" aria-hidden="true">{score}</span>
         </div>
       </div>
       <p className="mt-3 text-sm text-gray-600">{summary}</p>
