@@ -75,7 +75,7 @@ export function analyzeLocally(
   }
 
   const normalized = nutrientKeys.map(key => clamp(percents[key], 0, 120))
-  const score = Math.round(normalized.reduce((a, b) => a + b, 0) / normalized.length)
+  const score = clamp(Math.round(normalized.reduce((a, b) => a + b, 0) / normalized.length), 0, 100)
 
   const nutrients: Record<NutrientKey, NutrientStatus> = {} as Record<NutrientKey, NutrientStatus>
   const units: Record<NutrientKey, string> = {
