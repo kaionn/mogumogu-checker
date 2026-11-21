@@ -13,6 +13,19 @@ interface AnalyzeRequest {
   date?: string
 }
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
+function isValidRequest(body: unknown): body is AnalyzeRequest {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) return false
+  const { profile, foods } = body as Record<string, unknown>
+  if (typeof profile !== 'object' || profile === null || Array.isArray(profile)) return false
+  const { months, weight, milkPerDay, mealsPerDay } = profile as Record<string, unknown>
+  if (![months, weight, milkPerDay, mealsPerDay].every(isFiniteNumber)) return false
+  return typeof foods === 'string' && foods.trim() !== ''
+}
+
 function buildPrompt(profile: AnalyzeRequest['profile'], foods: string, date?: string): string {
   return `あなたは離乳食の栄養アドバイザーです。
 
@@ -59,15 +72,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
   }
 
-  let body: AnalyzeRequest
+  let parsed: unknown
   try {
-    body = await request.json()
+    parsed = await request.json()
   } catch {
+    parsed = undefined
+  }
+  if (!isValidRequest(parsed)) {
     return new Response(JSON.stringify({ error: 'Invalid request body' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     })
   }
+  const body = parsed
 
   if (body.date !== undefined && (typeof body.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(body.date))) {
     return new Response(JSON.stringify({ error: 'Invalid analysis date' }), {
@@ -111,8 +128,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const result = JSON.parse(text)
-    return new Response(JSON.stringify({ ...result, date: body.date ?? new Date().toISOString().split('T')[0] }), {
+    let result: unknown
+    try {
+      result = JSON.parse(text)
+    } catch {
+      console.error('Gemini returned non-JSON text')
+      return new Response(JSON.stringify({ error: 'Invalid response from AI' }), {
+        status: 502,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    return new Response(JSON.stringify({ ...(result as object), date: body.date ?? new Date().toISOString().split('T')[0] }), {
       headers: { 'Content-Type': 'application/json' },
     })
   } catch (err) {
