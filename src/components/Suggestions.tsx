@@ -19,20 +19,20 @@ export function Suggestions({ deficiencies }: Props) {
   return (
     <div className="mb-6">
       <h3 className="font-bold text-gray-700 mb-2">おすすめ食材</h3>
-      <div className="space-y-2">
+      <ul className="space-y-2">
         {deficiencies.map(d => (
-          <div key={d.nutrient} className="bg-orange-50 rounded-lg p-3">
+          <li key={d.nutrient} className="bg-orange-50 rounded-lg p-3">
             <p className="text-sm text-gray-600 mb-1">{d.reason}</p>
-            <div className="flex flex-wrap gap-1.5">
+            <ul className="flex flex-wrap gap-1.5">
               {d.suggestions.map(s => (
-                <span key={s} className="bg-orange-200 text-orange-800 text-xs px-2 py-1 rounded-full">
+                <li key={s} className="bg-orange-200 text-orange-800 text-xs px-2 py-1 rounded-full">
                   {s}
-                </span>
+                </li>
               ))}
-            </div>
-          </div>
+            </ul>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   )
 }
